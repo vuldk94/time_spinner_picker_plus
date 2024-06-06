@@ -1,10 +1,10 @@
-library time_spinner_picker_plus;
-
 ////////////////////////////////////////////////
 ///      Created by:  vuldk@bytesoft.net     ///
 ///      Company: BYTESOFT                   ///
 ///      Time: 13/12/2023                    ///
 ////////////////////////////////////////////////
+
+library time_spinner_picker_plus;
 
 import 'package:flutter/material.dart';
 
@@ -14,7 +14,9 @@ class TimeSpinnerPickerPlus extends StatefulWidget {
     this.height = 100,
     this.fontSize = 16,
     this.minutesInterval = 1,
+    this.secondsInterval = 1,
     this.is24h = true,
+    this.isShowSeconds = false,
     this.selectedColor = Colors.black,
     this.unSelectedColor = Colors.grey,
     this.initialTime,
@@ -24,24 +26,25 @@ class TimeSpinnerPickerPlus extends StatefulWidget {
   final double height;
   final double fontSize;
   final int minutesInterval;
+  final int secondsInterval;
   final bool is24h;
+  final bool isShowSeconds;
   final Color selectedColor;
   final Color unSelectedColor;
   final DateTime? initialTime;
   final Function(DateTime) onTimeChange;
 
   @override
-  State<TimeSpinnerPickerPlus> createState() =>
-      _TimeSpinnerPickerPlusState();
+  State<TimeSpinnerPickerPlus> createState() => _TimeSpinnerPickerPlusState();
 }
 
 class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
   late int selectedHourItem;
-
   late int selectedMinutesItem;
+  late int selectedSecondsItem;
+  late int selectedTypeItem;
 
-  late FixedExtentScrollController fscHour;
-  late FixedExtentScrollController fscMinutes;
+  late FixedExtentScrollController fscHour, fscMinutes, fscSeconds, fscType;
 
   @override
   void initState() {
@@ -54,24 +57,55 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
     return widget.minutesInterval;
   }
 
+  int _getSecondsInterval() {
+    if (widget.secondsInterval > 30) return 30;
+    return widget.secondsInterval;
+  }
+
   _initSelectedTime() {
     if (widget.initialTime == null) {
       final time = DateTime.now();
-      selectedHourItem = time.hour;
+      selectedHourItem =
+      (!widget.is24h && time.hour > 12) ? time.hour - 13 : time.hour;
       selectedMinutesItem = (time.minute / _getMinutesInterval()).round();
+      selectedSecondsItem = (time.second / _getSecondsInterval()).round();
+      if (time.hour >= 12) {
+        selectedTypeItem = 1;
+      } else {
+        selectedTypeItem = 0;
+      }
     } else {
-      selectedHourItem = widget.initialTime!.hour;
+      selectedHourItem = (!widget.is24h && widget.initialTime!.hour > 12)
+          ? widget.initialTime!.hour - 13
+          : widget.initialTime!.hour;
       selectedMinutesItem =
           (widget.initialTime!.minute / _getMinutesInterval()).round();
+      selectedSecondsItem =
+          (widget.initialTime!.second / _getSecondsInterval()).round();
+      if (widget.initialTime!.hour >= 12) {
+        selectedTypeItem = 1;
+      } else {
+        selectedTypeItem = 0;
+      }
     }
     fscHour = FixedExtentScrollController(initialItem: selectedHourItem);
     fscMinutes = FixedExtentScrollController(initialItem: selectedMinutesItem);
+    fscSeconds = FixedExtentScrollController(initialItem: selectedSecondsItem);
+    fscType = FixedExtentScrollController(
+      initialItem: selectedTypeItem,
+    );
   }
 
   void _onTimeChange() {
     final now = DateTime.now();
-    DateTime result = DateTime(now.year, now.month, now.day, selectedHourItem,
-        selectedMinutesItem * widget.minutesInterval);
+    DateTime result = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      selectedHourItem,
+      selectedMinutesItem * widget.minutesInterval,
+      selectedSecondsItem * widget.secondsInterval,
+    );
     widget.onTimeChange.call(result);
   }
 
@@ -89,7 +123,8 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
           Flexible(
               flex: 1,
               child: spin(
-                  size: 24,
+                  isHour: true,
+                  size: widget.is24h ? 24 : 12,
                   fsc: fscHour,
                   selectedItem: selectedHourItem,
                   interval: 1,
@@ -112,6 +147,35 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
                       _onTimeChange();
                     });
                   })),
+          if (widget.isShowSeconds)
+            Flexible(
+                flex: 1,
+                child: spin(
+                    size: (60 / _getSecondsInterval()).round(),
+                    fsc: fscSeconds,
+                    selectedItem: selectedSecondsItem,
+                    interval: 1,
+                    indexChange: (index) {
+                      setState(() {
+                        selectedSecondsItem = index;
+                        _onTimeChange();
+                      });
+                    })),
+          if (!widget.is24h)
+            Flexible(
+                flex: 1,
+                child: spin(
+                    size: 2,
+                    isType: true,
+                    fsc: fscType,
+                    selectedItem: selectedTypeItem,
+                    interval: 1,
+                    indexChange: (index) {
+                      setState(() {
+                        selectedTypeItem = index;
+                        _onTimeChange();
+                      });
+                    })),
         ],
       ),
     );
@@ -123,13 +187,17 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
     required int selectedItem,
     required Function(int) indexChange,
     required int interval,
+    bool isHour = false,
+    bool isType = false,
   }) {
     return SizedBox(
       height: widget.height,
-      child: ListWheelScrollView.useDelegate(
+      child: !isType
+          ? ListWheelScrollView.useDelegate(
         onSelectedItemChanged: (index) {
           indexChange.call(index);
         },
+        scrollBehavior: const ScrollBehavior(),
         itemExtent: widget.height / 3,
         controller: fsc,
         physics: const FixedExtentScrollPhysics(),
@@ -141,7 +209,7 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
                 alignment: Alignment.center,
                 child: Text(
                   textAlign: TextAlign.center,
-                  '${index * interval}',
+                  '${isType ? (index == 0 ? 'AM' : 'PM') : ((isHour && size == 12) ? (index + 1) : index * interval)}',
                   style: selectedItem == index
                       ? TextStyle(
                     color: widget.selectedColor,
@@ -156,6 +224,34 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
                 ),
               );
             })),
+      )
+          : ListWheelScrollView(
+        onSelectedItemChanged: (index) {
+          indexChange.call(index);
+        },
+        itemExtent: widget.height / 3,
+        children: List.generate(size, (index) {
+          return Container(
+            color: Colors.transparent,
+            margin: const EdgeInsets.symmetric(vertical: 0),
+            alignment: Alignment.center,
+            child: Text(
+              textAlign: TextAlign.center,
+              '${isType ? (index == 0 ? 'AM' : 'PM') : ((isHour && size == 12) ? (index + 1) : index * interval)}',
+              style: selectedItem == index
+                  ? TextStyle(
+                color: widget.selectedColor,
+                fontSize: widget.fontSize,
+                decoration: TextDecoration.none,
+              )
+                  : TextStyle(
+                color: widget.unSelectedColor,
+                fontSize: widget.fontSize,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
