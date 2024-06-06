@@ -11,8 +11,6 @@ This project is a starting point for a Dart package, a library module containing
 For help getting started with Flutter, view our online documentation, which offers tutorials, samples, guidance on mobile development, and a full API reference.
 
 ## Usage
-
-## Usage
 ```dart
 
 Widget widget() {
