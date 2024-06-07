@@ -57,8 +57,4 @@ Widget widget() {
   );
 }
 ```
-For more customization options and advanced usage, refer to the [API documentation](#).
-
-## Additional information
-
-A beautiful and animated time picker spinner
+For more customization options and advanced usage, refer to the [API documentation](#)  .

@@ -8,11 +8,21 @@ library time_spinner_picker_plus;
 
 import 'package:flutter/material.dart';
 
+const double defaultItemHeight = 60;
+const double defaultItemWidth = 45;
+const double defaultFontSize = 16;
+const double defaultSpacing = 20;
+const AlignmentGeometry defaultAlignment = Alignment.center;
+
 class TimeSpinnerPickerPlus extends StatefulWidget {
   const TimeSpinnerPickerPlus({
     super.key,
-    this.height = 100,
-    this.fontSize = 16,
+    this.itemHeight = defaultItemHeight,
+    this.itemWidth = defaultItemWidth,
+    this.fontSize = defaultFontSize,
+    this.alignment = defaultAlignment,
+    this.horizontalSpacing = defaultSpacing,
+    this.verticalSpacing = defaultSpacing,
     this.minutesInterval = 1,
     this.secondsInterval = 1,
     this.is24h = true,
@@ -23,8 +33,12 @@ class TimeSpinnerPickerPlus extends StatefulWidget {
     required this.onTimeChange,
   });
 
-  final double height;
+  final double itemHeight;
+  final double itemWidth;
   final double fontSize;
+  final double horizontalSpacing;
+  final double verticalSpacing;
+  final AlignmentGeometry alignment;
   final int minutesInterval;
   final int secondsInterval;
   final bool is24h;
@@ -97,27 +111,53 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
   }
 
   void _onTimeChange() {
+    print(
+        "vuldk $selectedTypeItem $selectedHourItem  $selectedMinutesItem  $selectedSecondsItem");
     final now = DateTime.now();
-    DateTime result = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      selectedHourItem,
-      selectedMinutesItem * widget.minutesInterval,
-      selectedSecondsItem * widget.secondsInterval,
-    );
+    DateTime result = DateTime.now();
+    if (widget.is24h) {
+      result = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        selectedHourItem + 1,
+        selectedMinutesItem * widget.minutesInterval,
+        selectedSecondsItem * widget.secondsInterval,
+      );
+    } else {
+      if (selectedTypeItem == 0) {
+        result = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          selectedHourItem + 1,
+          selectedMinutesItem * widget.minutesInterval,
+          selectedSecondsItem * widget.secondsInterval,
+        );
+      } else {
+        result = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          selectedHourItem + 1 + 12,
+          selectedMinutesItem * widget.minutesInterval,
+          selectedSecondsItem * widget.secondsInterval,
+        );
+      }
+    }
+    print("vuldk ${result.toString()}");
+
     widget.onTimeChange.call(result);
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.sizeOf(context).width / 3),
-      width: MediaQuery.sizeOf(context).width,
-      height: widget.height,
+      alignment: widget.alignment,
+      height: widget.itemHeight * 3,
       color: Colors.white,
       child: Row(
+        mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Flexible(
@@ -134,6 +174,9 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
                       _onTimeChange();
                     });
                   })),
+          SizedBox(
+            width: widget.horizontalSpacing / 2,
+          ),
           Flexible(
               flex: 1,
               child: spin(
@@ -147,6 +190,9 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
                       _onTimeChange();
                     });
                   })),
+          SizedBox(
+            width: widget.horizontalSpacing / 2,
+          ),
           if (widget.isShowSeconds)
             Flexible(
                 flex: 1,
@@ -161,6 +207,10 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
                         _onTimeChange();
                       });
                     })),
+          if (widget.isShowSeconds)
+            SizedBox(
+              width: widget.horizontalSpacing / 2,
+            ),
           if (!widget.is24h)
             Flexible(
                 flex: 1,
@@ -191,25 +241,32 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
     bool isType = false,
   }) {
     return SizedBox(
-      height: widget.height,
+      width: widget.itemWidth,
       child: !isType
           ? ListWheelScrollView.useDelegate(
         onSelectedItemChanged: (index) {
           indexChange.call(index);
         },
+        diameterRatio: 100,
+        perspective: 0.008,
         scrollBehavior: const ScrollBehavior(),
-        itemExtent: widget.height / 3,
+        itemExtent: widget.itemHeight - 1,
         controller: fsc,
         physics: const FixedExtentScrollPhysics(),
         childDelegate: ListWheelChildLoopingListDelegate(
             children: List.generate(size, (index) {
               return Container(
+                height: widget.itemHeight,
+                width: widget.itemWidth,
                 color: Colors.transparent,
-                margin: const EdgeInsets.symmetric(vertical: 0),
+                margin: EdgeInsets.symmetric(
+                  vertical: widget.verticalSpacing / 2,
+                  horizontal: widget.horizontalSpacing / 2,
+                ),
                 alignment: Alignment.center,
                 child: Text(
                   textAlign: TextAlign.center,
-                  '${isType ? (index == 0 ? 'AM' : 'PM') : ((isHour && size == 12) ? (index + 1) : index * interval)}',
+                  '${(isHour && size == 12) ? (index + 1) : index * interval}',
                   style: selectedItem == index
                       ? TextStyle(
                     color: widget.selectedColor,
@@ -229,7 +286,10 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
         onSelectedItemChanged: (index) {
           indexChange.call(index);
         },
-        itemExtent: widget.height / 3,
+        controller: fscType,
+        diameterRatio: 100,
+        perspective: 0.008,
+        itemExtent: widget.itemHeight,
         children: List.generate(size, (index) {
           return Container(
             color: Colors.transparent,
@@ -237,7 +297,7 @@ class _TimeSpinnerPickerPlusState extends State<TimeSpinnerPickerPlus> {
             alignment: Alignment.center,
             child: Text(
               textAlign: TextAlign.center,
-              '${isType ? (index == 0 ? 'AM' : 'PM') : ((isHour && size == 12) ? (index + 1) : index * interval)}',
+              index == 0 ? 'AM' : 'PM',
               style: selectedItem == index
                   ? TextStyle(
                 color: widget.selectedColor,
