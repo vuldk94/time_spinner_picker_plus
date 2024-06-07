@@ -36,8 +36,8 @@ For help getting started with Flutter, view our online documentation, which offe
 | isShowSeconds   |     bool     |              false              |
 | selectedColor   | Colors.black |              false              |
 | unSelectedColor | Colors.grey  |              false              |
-| height          |    double    |              60.0               |
-| fontSize        |    double    |              45.0               |
+| height          |    double    |              100.0              |
+| fontSize        |    double    |              16.0               |
 | onTimeChange    |   callback   |                                 |
 
 ## Usage
